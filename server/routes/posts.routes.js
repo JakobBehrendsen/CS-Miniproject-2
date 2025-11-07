@@ -1,0 +1,11 @@
+import { Router } from 'express';
+import { nanoid } from 'nanoid';
+import { db } from '../db.js';
+import { authRequired } from '../auth.js';
+const router = Router();
+router.get('/',(_req,res)=>res.json([...db.posts].sort((a,b)=>b.createdAt-a.createdAt)));
+router.get('/:id',(req,res)=>{ const post=db.posts.find(p=>p.id===req.params.id); if(!post) return res.status(404).json({error:'Not found'}); res.json(post); });
+router.post('/',authRequired,(req,res)=>{ const {title,body}=req.body||{}; if(!title||!body) return res.status(400).json({error:'Missing title/body'}); const now=Date.now(); const post={id:nanoid(),title,body,authorId:req.user.id,authorName:req.user.name,createdAt:now,updatedAt:now}; db.posts.push(post); res.status(201).json(post); });
+router.put('/:id',authRequired,(req,res)=>{ const post=db.posts.find(p=>p.id===req.params.id); if(!post) return res.status(404).json({error:'Not found'}); if(post.authorId!==req.user.id) return res.status(403).json({error:'Forbidden: not your post'}); post.title=req.body.title??post.title; post.body=req.body.body??post.body; post.updatedAt=Date.now(); res.json(post); });
+router.delete('/:id',authRequired,(req,res)=>{ const idx=db.posts.findIndex(p=>p.id===req.params.id); if(idx===-1) return res.status(404).json({error:'Not found'}); if(db.posts[idx].authorId!==req.user.id) return res.status(403).json({error:'Forbidden: not your post'}); const [deleted]=db.posts.splice(idx,1); res.json({ok:true,deletedId:deleted.id}); });
+export default router;

@@ -1,0 +1,20 @@
+import express from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
+import dotenv from 'dotenv';
+import authRoutes from './routes/auth.routes.js';
+import postsRoutes from './routes/posts.routes.js';
+
+dotenv.config();
+const app = express();
+const PORT = process.env.PORT || 8000;
+app.use(cors({ origin:(o,cb)=>cb(null,true), credentials:true, methods:['GET','POST','PUT','DELETE','OPTIONS'], allowedHeaders:['Content-Type','Authorization'] }));
+app.options('*', cors());
+app.use(express.json());
+app.use(morgan('dev'));
+app.get('/',(_req,res)=>res.json({ok:true,message:'API running'}));
+app.use('/api/auth', authRoutes);
+app.use('/api/posts', postsRoutes);
+app.use((_req,res)=>res.status(404).json({error:'Not found'}));
+app.use((err,_req,res,_next)=>{ console.error(err); res.status(500).json({error:'Server error'}); });
+app.listen(PORT,()=>console.log(`Server listening on http://localhost:${PORT}`));
